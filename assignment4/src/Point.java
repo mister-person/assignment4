@@ -1,16 +1,12 @@
 import java.awt.Color;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 
-public class Point {
-	public double x;
-	public double y;
-
-
+public class Point extends Point2D.Double {
+	
 	public Point(double x, double y) {
-		this.x = x;
-		this.y = y;
+		super(x, y);
 	}
-
-
 	
 	public Point add(Point p) {
 		return new Point(x + p.x, y + p.y);
@@ -18,6 +14,11 @@ public class Point {
 	
 	public Point flip() {
 		return new Point(-x, -y);
+	}
+	
+	public Point transform(AffineTransform t) {
+		
+		return new Point(0, 0);
 	}
 	
 	public Point scale(double scale) {

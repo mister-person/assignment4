@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.geom.Point2D;
 
 public class DrawnPoint extends Point {
 	private int size;
@@ -51,6 +52,10 @@ public class DrawnPoint extends Point {
 
 	public int intyPos() {
 		return (int)y;
+	}
+	
+	public DrawnPoint copy() {
+		return new DrawnPoint(x, y, size, color);
 	}
 
 	@Override

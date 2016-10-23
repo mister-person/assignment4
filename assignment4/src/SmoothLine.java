@@ -2,6 +2,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Shape;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 
@@ -35,12 +36,29 @@ public class SmoothLine implements DrawnObject {
 
 	@Override
 	public void drawOutline(Graphics g, Color c) {
-		//apparently you can do this
 		Graphics2D g2 = (Graphics2D)g;
 		
 		g2.setColor(c);
 		
 		g2.draw(getPolygon());
+	}
+
+	@Override
+	public void transform(AffineTransform transform) {
+		ArrayList<DrawnPoint> newPointlist = new ArrayList<>();
+		for(DrawnPoint p:pointlist) {
+			DrawnPoint newPoint = p.copy();
+			transform.transform(p, newPoint);
+			newPointlist.add(newPoint);
+		}
+
+		pointlist = newPointlist;
+		polygonUpdated = false;
+	}
+
+	@Override
+	public boolean inObject(double x, double y) {
+		return getPolygon().contains(x, y);
 	}
 
 	private Shape getPolygon() {
@@ -53,7 +71,6 @@ public class SmoothLine implements DrawnObject {
 
 		if(cpointlist.size() >= 2) {
 			Point[] points = new Point[cpointlist.size()*4 - 4];
-			Point[] curvePoints = new Point[cpointlist.size()*2];
 			DrawnPoint point, nextPoint; 
 			DrawnPoint prevPoint = null;
 
@@ -68,27 +85,15 @@ public class SmoothLine implements DrawnObject {
 					Point normVector = getNormVector(point, nextPoint);
 
 					//rotate normalized vector by 90 degrees, multiply it by size, and add it to polygon
-					points[i*2 + 0] = new Point((normVector.y*point.getSize()*.95) + point.intxPos(), -(normVector.x*point.getSize()*.95) + point.intyPos());
+					points[i*2 + 0] = new Point((normVector.y*point.getSize()*.48) + point.intxPos(), -(normVector.x*point.getSize()*.48) + point.intyPos());
 
 					//same as above but going 90 degrees the other direction and on the other end of the polygon
-					points[points.length - i*2 - 1] = new Point(-(normVector.y*point.getSize()*.95) + point.intxPos(), (normVector.x*point.getSize()*.95) + point.intyPos());
+					points[points.length - i*2 - 1] = new Point(-(normVector.y*point.getSize()*.48) + point.intxPos(), (normVector.x*point.getSize()*.48) + point.intyPos());
 
 					//now same thing for points at nextPoint
-					points[points.length - i*2 - 2] = new Point(-(normVector.y*nextPoint.getSize()*.95) + nextPoint.intxPos(), (normVector.x*nextPoint.getSize()*.95) + nextPoint.intyPos());
+					points[points.length - i*2 - 2] = new Point(-(normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), (normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
 
-					points[i*2 + 1] = new Point((normVector.y*nextPoint.getSize()*.95) + nextPoint.intxPos(), -(normVector.x*nextPoint.getSize()*.95) + nextPoint.intyPos());
-					
-					if(i != 0) {
-						Point curvePoint = normVector.add(getNormVector(point, prevPoint));
-						if(!(curvePoint.x == 0 && curvePoint.y == 0)) {
-							if(angleBetweenVectors(normVector, curvePoint) < Math.PI/2) {
-								curvePoints[i] = getNormVector(new Point(0, 0), curvePoint);
-							}
-							else {
-								curvePoints[cpointlist.size()*2 - i] = getNormVector(new Point(0, 0), curvePoint);
-							}
-						}
-					}
+					points[i*2 + 1] = new Point((normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), -(normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
 					
 					prevPoint = point;
 				}
@@ -96,7 +101,7 @@ public class SmoothLine implements DrawnObject {
 			
 			
 
-			double size = cpointlist.get(cpointlist.size() - 1).getSize() * 1.2;
+			double size = cpointlist.get(cpointlist.size() - 1).getSize() * .6;
 			
 			path.moveTo(points[0].x, points[0].y);
 			
@@ -139,10 +144,10 @@ public class SmoothLine implements DrawnObject {
 		Point curvePoint = getNormVector(center, nextPoint).add(getNormVector(center, lastPoint));
 		if(!(curvePoint.x == 0 && curvePoint.y == 0)) {
 			Point fromDelta = curveFrom.add(center.flip());
-			Point toDelta = curveTo.add(center.flip());
+			//Point toDelta = curveTo.add(center.flip());
 			
 			//check if we're on the outside of a curve
-			if(angleBetweenVectors(fromDelta, curvePoint) >= Math.PI/2) {
+			if(angleBetweenVectors(fromDelta, curvePoint) >= Math.PI/2 - .01) {
 				//curvePoints[i] = getNormVector(new Point(0, 0), curvePoint);
 				doApproxCircle(path, center, curveFrom, curveTo);
 				//path.lineTo(bezier1.x, bezier1.y);
@@ -169,17 +174,18 @@ public class SmoothLine implements DrawnObject {
 	
 	private ArrayList<DrawnPoint> cullAdjacentPoints() {
 		ArrayList<DrawnPoint> newPointlist = new ArrayList<DrawnPoint>();
-		boolean deleted = false;
-		for(int i = 0; i < pointlist.size() - 1; i++) {
-			if(!(Math.abs(pointlist.get(i).x - pointlist.get(i+1).x) <= 1.1 && Math.abs(pointlist.get(i).y - pointlist.get(i+1).y) <= 1.1) || deleted) {
-				newPointlist.add(pointlist.get(i));
-				deleted = false;
+		Point lastPoint = pointlist.get(0);
+		for(int i = 1; i < pointlist.size(); i++) {
+			if(!(Math.abs(lastPoint.x - pointlist.get(i).x) <= 1.1 && Math.abs(lastPoint.y - pointlist.get(i).y) <= 1.1)) {
+				newPointlist.add(pointlist.get(i - 1));
+				lastPoint = pointlist.get(i);
 			}
-			else {
-				deleted = true;
+			else if(i == 1){
+				newPointlist.add(pointlist.get(i - 1));
 			}
 		}
 		newPointlist.add(pointlist.get(pointlist.size() - 1));
+		//newPointlist.add(pointlist.get(pointlist.size() - 1));
 		return newPointlist;
 	}
 	
@@ -196,11 +202,6 @@ public class SmoothLine implements DrawnObject {
 		p1 = getNormVector(new Point(0, 0), p1);
 		p2 = getNormVector(new Point(0, 0), p2);
 		return Math.acos(p1.x*p2.x + p1.y*p2.y);
-	}
-
-	@Override
-	public boolean inObject(double x, double y) {
-		return false;
 	}
 
 }

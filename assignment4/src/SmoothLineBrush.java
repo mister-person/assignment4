@@ -4,6 +4,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 
@@ -36,10 +37,8 @@ public class SmoothLineBrush implements Brush {
 	}
 
 	@Override
-	public void drawOutline(Graphics g, Color c) {
+	public void drawOutline(Graphics g) {
 		Graphics2D g2 = (Graphics2D)g;
-		
-		g2.setColor(c);
 		
 		g2.draw(getPolygon());
 	}
@@ -136,6 +135,10 @@ public class SmoothLineBrush implements Brush {
 			normVector = getNormVector(cpointlist.get(1), cpointlist.get(0));
 			path.curveTo(normVector.x*size + points[i - 1].x, normVector.y*size + points[i - 1].y, normVector.x*size + points[0].x, normVector.y*size + points[0].y, points[0].x, points[0].y);
 			
+		}
+		else if(pointlist.size() > 0){
+			DrawnPoint point = pointlist.get(0);
+			return new Ellipse2D.Double(point.x-point.getSize()/2, point.y - point.getSize()/2, point.getSize(), point.getSize());
 		}
 
 		polygonUpdated = true;

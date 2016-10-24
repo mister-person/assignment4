@@ -13,7 +13,7 @@ public interface Brush {
 	
 	public abstract void draw(Graphics g);
 	
-	public abstract void drawOutline(Graphics g, Color c);
+	public abstract void drawOutline(Graphics g);
 	
 	public abstract void transform(AffineTransform transform);
 	

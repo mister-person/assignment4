@@ -1,3 +1,4 @@
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -5,7 +6,6 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 public class FillAreaBrush implements Brush {
@@ -39,7 +39,7 @@ public class FillAreaBrush implements Brush {
 	@Override
 	public void draw(Graphics g) {
 		Graphics2D g2 = (Graphics2D)g;
-
+		
 		if(pointlist.size() > 0) {
 			g2.setColor(pointlist.get(0).getColor());
 		}
@@ -48,10 +48,8 @@ public class FillAreaBrush implements Brush {
 	}
 
 	@Override
-	public void drawOutline(Graphics g, Color c) {
+	public void drawOutline(Graphics g) {
 		Graphics2D g2 = (Graphics2D)g;
-
-		g2.setColor(c);
 
 		g2.draw(getPolygon());
 	}

@@ -1,3 +1,4 @@
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -52,10 +53,9 @@ public class CirclesLineBrush implements Brush {
 	}
 
 	@Override
-	public void drawOutline(Graphics g, Color c) {
+	public void drawOutline(Graphics g) {
 		Graphics2D g2 = (Graphics2D)g;
 		for(DrawnPoint p:pointlist) {
-			g2.setColor(c);
 			g2.drawOval((int)(p.x - p.getSize()/2), (int)(p.y - p.getSize()/2), p.getSize(), p.getSize());
 		}
 	}

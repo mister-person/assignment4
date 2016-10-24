@@ -1,8 +1,10 @@
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -11,6 +13,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -268,10 +271,10 @@ public class MainFrame extends JFrame {
 		});
 		blackButton.setForeground(new Color(0, 0, 0));
 
-		JButton whiteButton = new JButton("White");
+		JButton whiteButton = new JButton("Erase");
 		brushSettings.add(whiteButton);
 		whiteButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{255, 255, 255};}
+			public void actionPerformed(ActionEvent e) {color = new int[]{255, 255, 255, 0};}
 		});
 		whiteButton.setForeground(new Color(180, 180, 180));
 
@@ -311,6 +314,26 @@ public class MainFrame extends JFrame {
 				customColor[2] = ((JSlider)e.getSource()).getValue();
 				customButton.setForeground(new Color(customColor[0], customColor[1], customColor[2]));
 			}
+		});
+		JButton smallSizeButton = new JButton("Small Brush");
+		brushSettings.add(smallSizeButton);
+		smallSizeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {size = 5;}
+		});
+		JButton mediumSizeButton = new JButton("Medium Brush");
+		brushSettings.add(mediumSizeButton);
+		mediumSizeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {size = 15;}
+		});
+		JButton largeSizeButton = new JButton("Large Brush");
+		brushSettings.add(largeSizeButton);
+		largeSizeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {size = 25;}
+		});
+		JButton hugeSizeButton = new JButton("Huge Brush");
+		brushSettings.add(hugeSizeButton);
+		hugeSizeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {size = 50;}
 		});
 		//end brush settings
 
@@ -384,14 +407,25 @@ public class MainFrame extends JFrame {
 					if(!layer.visible) {
 						continue;//fewer indentations
 					}
+
+					BufferedImage image = new BufferedImage(canvasPanel.getWidth(), canvasPanel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+					Graphics2D imageGraphics = image.createGraphics();
+						imageGraphics.setComposite(AlphaComposite.Src);
+					
 					for(int j = 0; j < layer.shapelist.size(); j++) {
-						layer.shapelist.get(j).draw(g);
+						Brush shape = layer.shapelist.get(j);
+
+						shape.draw(imageGraphics);
+
 						if(currentLayer == i && selectedObjects.contains(j)) {
-							layer.shapelist.get(j).drawOutline(g, new Color(255, 0, 0));
-							Rectangle rect = layer.shapelist.get(j).getBounds();
-							g.drawRect(rect.x, rect.y, rect.width, rect.height);
+							imageGraphics.setColor(Color.RED);
+							shape.drawOutline(imageGraphics);
+							Rectangle rect = shape.getBounds();
+							imageGraphics.drawRect(rect.x, rect.y, rect.width, rect.height);
 						}
 					}
+
+					g.drawImage(image, 0, 0, null);
 				}
 				if(selectionOrigion != null) {
 					Rectangle selection = new Rectangle(lastMouseX, lastMouseY, 0, 0);
@@ -411,7 +445,7 @@ public class MainFrame extends JFrame {
 		canvasPanel.setPreferredSize(new Dimension(500, 500));
 		canvasPanel.repaint();
 
-		//set selected layer to 0. it's way down here so it doesn't throw NullPointerException because stuff hasn't been initialized.  
+		//set selected layer to 0. it's way down here so it doesn't NullPointerException because stuff hasn't been initialized.  
 		layerJList.setSelectedIndex(0);
 
 		setSize(900, 600);
@@ -441,6 +475,9 @@ public class MainFrame extends JFrame {
 							selectedObjects.clear();
 						}
 						selectedObjects.add(i);
+					}
+					else if(shouldMultiSelect(e)) {
+						selectedObjects.remove(Integer.valueOf(i));
 					}
 					return;
 				}
@@ -482,7 +519,7 @@ public class MainFrame extends JFrame {
 			}
 			else if(mouseMode == MOUSE_SELECT) {
 				selectObject(e.getX(), e.getY(), e);
-				if(selectedObjects.isEmpty()) {
+				if(selectedObjects.isEmpty() || shouldMultiSelect(e)) {
 					selectionOrigion = new Point(e.getX(), e.getY());
 				}
 				else {
@@ -492,14 +529,6 @@ public class MainFrame extends JFrame {
 			canvasPanel.updateUI();
 			lastMouseX = e.getX();
 			lastMouseY = e.getY();
-		}
-
-		@Override
-		public void mouseClicked(MouseEvent e) {
-			if(mouseMode == MOUSE_SELECT) {
-				selectObject(e.getX(), e.getY(), e);
-			}
-			canvasPanel.updateUI();
 		}
 
 		@Override
@@ -539,7 +568,7 @@ public class MainFrame extends JFrame {
 	}
 
 	private Color getColor() {
-		return new Color(color[0], color[1], color[2], alpha);
+		return new Color(color[0], color[1], color[2], color.length == 4 ? color[3] : alpha);
 	}
 
 	private int currentLayer() {
@@ -612,8 +641,8 @@ public class MainFrame extends JFrame {
 		public void clear() {
 			int size = layers.size() - 1;
 			layers.clear();
-			fireIntervalRemoved(this, 0, size);
 			addElement();
+			fireIntervalRemoved(this, 0, size);
 		}
 	}
 	

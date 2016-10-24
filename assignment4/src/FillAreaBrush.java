@@ -1,15 +1,17 @@
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
-public class FillArea implements DrawnObject {
+public class FillAreaBrush implements Brush {
 
 	private ArrayList<DrawnPoint> pointlist = new ArrayList<>();
-	
+
 	@Override
 	public void addPoint(DrawnPoint point) {
 		pointlist.add(point);
@@ -21,9 +23,23 @@ public class FillArea implements DrawnObject {
 	}
 
 	@Override
+	public Rectangle getBounds() {
+		Rectangle bounds = new Rectangle();
+
+		if(!pointlist.isEmpty()) {
+			bounds.setRect(pointlist.get(0).x, pointlist.get(0).y, 0, 0);
+			for(int i = 0; i < pointlist.size(); i++) {
+				bounds.add(pointlist.get(i));
+			}
+		}
+
+		return bounds;
+	}
+
+	@Override
 	public void draw(Graphics g) {
 		Graphics2D g2 = (Graphics2D)g;
-		
+
 		if(pointlist.size() > 0) {
 			g2.setColor(pointlist.get(0).getColor());
 		}
@@ -34,9 +50,9 @@ public class FillArea implements DrawnObject {
 	@Override
 	public void drawOutline(Graphics g, Color c) {
 		Graphics2D g2 = (Graphics2D)g;
-		
+
 		g2.setColor(c);
-		
+
 		g2.draw(getPolygon());
 	}
 
@@ -55,14 +71,14 @@ public class FillArea implements DrawnObject {
 	private Shape getPolygon() {
 
 		Path2D.Double path = new Path2D.Double(Path2D.WIND_NON_ZERO, pointlist.size());
-		
+
 		if(pointlist.size() > 0) {
 			path.moveTo(pointlist.get(0).x, pointlist.get(0).y);
 		}
 		for(int i = 1; i < pointlist.size(); i++) {
 			path.lineTo(pointlist.get(i).x, pointlist.get(i).y);
 		}
-		
+
 		return path;
 	}
 }

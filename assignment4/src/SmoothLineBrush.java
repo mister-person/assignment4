@@ -1,12 +1,13 @@
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 
-public class SmoothLine implements DrawnObject {
+public class SmoothLineBrush implements Brush {
 
 	private ArrayList<DrawnPoint> pointlist = new ArrayList<>();
 	private Path2D.Double polygon;
@@ -14,7 +15,7 @@ public class SmoothLine implements DrawnObject {
 	private int size;
 	private int[] color;
 
-	public SmoothLine() {
+	public SmoothLineBrush() {
 	}
 
 	@Override
@@ -60,6 +61,11 @@ public class SmoothLine implements DrawnObject {
 	public boolean inObject(double x, double y) {
 		return getPolygon().contains(x, y);
 	}
+	
+	@Override
+	public Rectangle getBounds() {
+		return getPolygon().getBounds();
+	}
 
 	private Shape getPolygon() {
 		if(polygonUpdated) {
@@ -98,8 +104,6 @@ public class SmoothLine implements DrawnObject {
 					prevPoint = point;
 				}
 			}
-			
-			
 
 			double size = cpointlist.get(cpointlist.size() - 1).getSize() * .6;
 			

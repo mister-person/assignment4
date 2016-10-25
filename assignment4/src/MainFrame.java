@@ -21,17 +21,13 @@ import java.util.List;
 import javax.swing.AbstractListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
@@ -42,6 +38,7 @@ public class MainFrame extends JFrame {
 
 	private JPanel canvasPanel;
 
+	//ArrayList of layers. Layer contains ArrayList of brushes, Brush contains ArrayList of points.
 	private ArrayList<Layer> layers = new ArrayList<>();
 	private LayerListModel listModel = new LayerListModel();
 	private JList<Layer> layerJList;
@@ -49,8 +46,8 @@ public class MainFrame extends JFrame {
 	private JCheckBox visibleBox;
 	private JTextField nameField; 
 
-	private int mouseMode = 0;
 	private ArrayList<Integer> selectedObjects = new ArrayList<>();
+	private JLabel selectSomethingLabel;
 	private JPanel selectionSettings;
 	private Point selectionOrigion;
 	private int lastMouseX;
@@ -60,6 +57,7 @@ public class MainFrame extends JFrame {
 	private BrushSettingsPanel brushSettings;
 	private Brush currentDrawnObject;
 
+	private int mouseMode = 0;
 	public static final int MOUSE_DRAW = 0;
 	public static final int MOUSE_SELECT = 1;
 
@@ -73,18 +71,19 @@ public class MainFrame extends JFrame {
 		add(rightPanel, BorderLayout.EAST);
 		rightPanel.setPreferredSize(new Dimension(200, 500));
 
+		//start with one layer
 		layers.add(new Layer());
 
 		layerJList = new JList<Layer>(listModel);
 		layerJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
 		layerJList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				setCurrentLayer(layerJList.getSelectedIndex());
 				if(canvasPanel != null) {
-					canvasPanel.repaint();
+					repaint();
 				}
+				//unselect everything if you move to a new layer
 				selectedObjects.clear();
 			}
 		});
@@ -93,6 +92,7 @@ public class MainFrame extends JFrame {
 		rightPanel.add(layerPane);
 		layerPane.setPreferredSize(new Dimension(200, 300));
 
+		//the text in this text field should always be the same as the current layer's name.
 		nameField = new JTextField();
 		nameField.setPreferredSize(new Dimension(100, 20));
 		rightPanel.add(nameField);
@@ -107,16 +107,17 @@ public class MainFrame extends JFrame {
 				update(e);
 			}
 
+			//change current layer name to whatever was typed in the textfield
 			private void update(DocumentEvent e) {
 				layers.get(currentLayer()).name = nameField.getText();
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) { }
 		});
 
+		//this should always be checked if the layer is visible and vice versa.
 		visibleBox = new JCheckBox("visible");
 		visibleBox.getModel().setSelected(true);
 		rightPanel.add(visibleBox);
@@ -124,8 +125,7 @@ public class MainFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				layers.get(currentLayer).visible = ((JCheckBox)e.getSource()).getModel().isSelected();
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 
@@ -136,8 +136,7 @@ public class MainFrame extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				listModel.addElement();
 				//currentLayer = layers.size() - 1;
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 
@@ -149,8 +148,7 @@ public class MainFrame extends JFrame {
 				if(layers.size() > 1) {
 					listModel.removeElement();
 				}
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 
@@ -160,8 +158,7 @@ public class MainFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				listModel.moveElementUp();
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 
@@ -171,8 +168,7 @@ public class MainFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				listModel.moveElementDown();
-				layerJList.repaint();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 		//end layers
@@ -182,18 +178,22 @@ public class MainFrame extends JFrame {
 		leftPanel.setPreferredSize(new Dimension(200, 500));
 
 		JButton clearButton = new JButton("Clear");
+		clearButton.setToolTipText("Delete everything");
 		leftPanel.add(clearButton);
 		clearButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				listModel.clear();
 				if(canvasPanel != null) {
-					canvasPanel.repaint();
+					repaint();
 				}
 			}
 		});
 
+		//button to switch between draw mode and select mode.
+		//it says "select" if clicking will bring you to select mode and "draw" if clicking will bring you to draw mode.
 		JButton mouseModeButton = new JButton("Select");
+		mouseModeButton.setToolTipText("Change to select mode");
 		leftPanel.add(mouseModeButton);
 		mouseModeButton.addActionListener(new ActionListener() {
 			@Override
@@ -201,34 +201,42 @@ public class MainFrame extends JFrame {
 				mouseMode = (mouseMode + 1)%2;
 				if(mouseMode == MOUSE_DRAW) {
 					mouseModeButton.setText("Select");
+					mouseModeButton.setToolTipText("Change to select mode");
 					brushSettings.setVisible(true);
 					selectionSettings.setVisible(false);
 				}
 				else if(mouseMode == MOUSE_SELECT) {
 					mouseModeButton.setText("Draw");
+					mouseModeButton.setToolTipText("Change to draw mode");
 					brushSettings.setVisible(false);
 					selectionSettings.setVisible(true);
 				}
 				selectedObjects.clear();
-				canvasPanel.repaint();
+				repaint();
 			}
 		});
 
 		//brush settings
 		//moved into new class because this one was getting long
+		//is only visible in draw mode
 		brushSettings = new BrushSettingsPanel();
 		leftPanel.add(brushSettings);
 		brushSettings.setPreferredSize(new Dimension(200, 500));
 
-		//end brush settings
-
-		//begin selection settings
+		//selection settings
+		//is only visible in select mode
 		selectionSettings = new JPanel();
 		leftPanel.add(selectionSettings);
 		selectionSettings.setPreferredSize(new Dimension(200, 500));
-		selectionSettings.setVisible(false);
+		selectionSettings.setVisible(false);//since it starts in draw mode
 
+		//this only shows up if you try to do something with the selection without selecting anything
+		//and it disappears if you select something.
+		selectSomethingLabel = new JLabel("Select something first -->");
+		selectSomethingLabel.setVisible(false);
+		
 		JButton deleteButton = new JButton("Delete");
+		deleteButton.setToolTipText("Delete selected objects");
 		selectionSettings.add(deleteButton);
 		deleteButton.addActionListener(new ActionListener() {
 			@Override
@@ -236,12 +244,17 @@ public class MainFrame extends JFrame {
 				if(!selectedObjects.isEmpty()) {
 					layers.get(currentLayer()).removeAll(selectedObjects);
 					selectedObjects.clear();
-					canvasPanel.repaint();
+					repaint();
+				}
+				else {
+					selectSomethingLabel.setVisible(true);
 				}
 			}
 		});
 		
+		//move selected objects to layer above the one they're in
 		JButton upLayerButton = new JButton("Move Up Layer");
+		upLayerButton.setToolTipText("Move selected objects to layer above the one they're in");
 		selectionSettings.add(upLayerButton);
 		upLayerButton.addActionListener(new ActionListener() {
 			@Override
@@ -257,12 +270,16 @@ public class MainFrame extends JFrame {
 						layers.get(currentLayer()).removeAll(selectedObjects);
 						setCurrentLayer(currentLayer() - 1);
 					}
-					canvasPanel.repaint();
+					repaint();
+				}
+				else {
+					selectSomethingLabel.setVisible(true);
 				}
 			}
 		});
 		
 		JButton downLayerButton = new JButton("Move Down Layer");
+		downLayerButton.setToolTipText("Move selected objects to layer below the one they're in");
 		selectionSettings.add(downLayerButton);
 		downLayerButton.addActionListener(new ActionListener() {
 			@Override
@@ -277,16 +294,22 @@ public class MainFrame extends JFrame {
 						layers.get(currentLayer()).removeAll(selectedObjects);
 						setCurrentLayer(currentLayer() + 1);
 					}
-					canvasPanel.repaint();
+					repaint();
+				}
+				else {
+					selectSomethingLabel.setVisible(true);
 				}
 			}
 		});
+		
+		selectionSettings.add(selectSomethingLabel);
 		//end selection settings
 
 		//drawing canvas
 		canvasPanel = new JPanel() {
 			@Override
 			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
 				for(int i = layers.size() - 1; i >= 0; i--) {
 					Layer layer = layers.get(i);
 					if(!layer.visible) {
@@ -325,10 +348,10 @@ public class MainFrame extends JFrame {
 		canvasPanel.addMouseListener(listener);
 		canvasPanel.addMouseMotionListener(listener);
 		add(canvasPanel, BorderLayout.CENTER);
-		canvasPanel.setBackground(new Color(1f, 1, 1));
+		canvasPanel.setBackground(new Color(255, 255, 255));
 		canvasPanel.setVisible(true);
 		canvasPanel.setPreferredSize(new Dimension(500, 500));
-		canvasPanel.repaint();
+		repaint();
 
 		//set selected layer to 0. it's way down here so it doesn't NullPointerException because stuff hasn't been initialized.  
 		layerJList.setSelectedIndex(0);
@@ -352,6 +375,7 @@ public class MainFrame extends JFrame {
 							selectedObjects.clear();
 						}
 						selectedObjects.add(i);
+						selectSomethingLabel.setVisible(false);
 					}
 					else if(shouldMultiSelect(e)) {
 						selectedObjects.remove(Integer.valueOf(i));
@@ -372,6 +396,7 @@ public class MainFrame extends JFrame {
 				if(layers.get(currentLayer()).shapelist.get(i).getBounds().intersects(selection)) {
 					if(!selectedObjects.contains(i)) {
 						selectedObjects.add(i);
+						selectSomethingLabel.setVisible(false);
 					}
 				}
 			}
@@ -459,7 +484,7 @@ public class MainFrame extends JFrame {
 		layerJList.setSelectedIndex(layer);
 		visibleBox.getModel().setSelected(layers.get(currentLayer()).visible);
 		nameField.setText(layers.get(currentLayer()).name);
-		canvasPanel.repaint();
+		repaint();
 		selectedObjects.clear();
 	}
 
@@ -535,6 +560,7 @@ public class MainFrame extends JFrame {
 		}
 		
 		public void removeAll(List<Integer> indices) {
+			//sort objects so the correct ones get removed.
 			Collections.sort(indices, Collections.reverseOrder());
 			for(int i = 0; i < indices.size(); i++) {
 				int index = indices.get(i);

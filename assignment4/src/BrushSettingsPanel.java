@@ -20,8 +20,8 @@ public class BrushSettingsPanel extends JPanel {
 	private int alpha = 255;
 
 	public static final int BRUSH_CIRCLES = 0;
-	public static final int BRUSH_SMOOTH_LINE = 0;
-	public static final int BRUSH_FILL_AREA = 0;
+	public static final int BRUSH_SMOOTH_LINE = 1;
+	public static final int BRUSH_FILL_AREA = 2;
 
 	public BrushSettingsPanel() {
 

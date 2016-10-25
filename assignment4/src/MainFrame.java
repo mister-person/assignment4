@@ -57,17 +57,11 @@ public class MainFrame extends JFrame {
 	private int lastMouseY;
 
 	//brush settings
-	private JPanel brushSettings;
+	private BrushSettingsPanel brushSettings;
 	private Brush currentDrawnObject;
-	private int size = 20;
-	private int brush = 0;
-	private int[] color = new int[]{0, 0, 0};
-	private int[] customColor = new int[]{0, 0, 0};
-	private int alpha = 255;
 
-
-	private static final int MOUSE_DRAW = 0;
-	private static final int MOUSE_SELECT = 1;
+	public static final int MOUSE_DRAW = 0;
+	public static final int MOUSE_SELECT = 1;
 
 	public MainFrame() {
 		super("window");
@@ -216,125 +210,16 @@ public class MainFrame extends JFrame {
 					selectionSettings.setVisible(true);
 				}
 				selectedObjects.clear();
+				canvasPanel.repaint();
 			}
 		});
 
 		//brush settings
-		brushSettings = new JPanel();
+		//moved into new class because this one was getting long
+		brushSettings = new BrushSettingsPanel();
 		leftPanel.add(brushSettings);
 		brushSettings.setPreferredSize(new Dimension(200, 500));
 
-		JComboBox<String> brushes = new JComboBox<>(new String[]{"Circles", "Smooth Line", "Fill Area"});
-		brushSettings.add(brushes);
-		brushes.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				brush = ((JComboBox<?>)e.getSource()).getSelectedIndex();
-			}
-		});
-
-		brushSettings.add(new JLabel("Transparency:"));
-		JSlider alphaSlider = new JSlider(0, 255, 0);
-		brushSettings.add(alphaSlider);
-		alphaSlider.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				alpha = 255-((JSlider)e.getSource()).getValue();
-			}
-		});
-
-		JButton redButton = new JButton("Red");
-		brushSettings.add(redButton);
-		redButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{255, 0, 0};}
-		});
-		redButton.setForeground(new Color(255, 0, 0));
-
-		JButton greenButton = new JButton("Green");
-		brushSettings.add(greenButton);
-		greenButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{0, 255, 0};}
-		});
-		greenButton.setForeground(new Color(0, 255, 0));
-
-		JButton blueButton = new JButton("Blue");
-		brushSettings.add(blueButton);
-		blueButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{0, 0, 255};}
-		});
-		blueButton.setForeground(new Color(0, 0, 255));
-
-		JButton blackButton = new JButton("Black");
-		brushSettings.add(blackButton);
-		blackButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{0, 0, 0};}
-		});
-		blackButton.setForeground(new Color(0, 0, 0));
-
-		JButton whiteButton = new JButton("Erase");
-		brushSettings.add(whiteButton);
-		whiteButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = new int[]{255, 255, 255, 0};}
-		});
-		whiteButton.setForeground(new Color(180, 180, 180));
-
-		JButton customButton = new JButton("Custom");
-		brushSettings.add(customButton);
-		customButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {color = customColor;}
-		});
-		customButton.setForeground(new Color(0, 0, 0));
-
-		brushSettings.add(new JLabel("Custom Red:"));
-		JSlider customRed = new JSlider(0, 255, 0);
-		brushSettings.add(customRed);
-		customRed.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				customColor[0] = ((JSlider)e.getSource()).getValue();
-				customButton.setForeground(new Color(customColor[0], customColor[1], customColor[2]));
-			}
-		});
-		brushSettings.add(new JLabel("Custom Green:"));
-		JSlider customGreen = new JSlider(0, 255, 0);
-		brushSettings.add(customGreen);
-		customGreen.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				customColor[1] = ((JSlider)e.getSource()).getValue();
-				customButton.setForeground(new Color(customColor[0], customColor[1], customColor[2]));
-			}
-		});
-		brushSettings.add(new JLabel("Custom Blue:"));
-		JSlider customBlue = new JSlider(0, 255, 0);
-		brushSettings.add(customBlue);
-		customBlue.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				customColor[2] = ((JSlider)e.getSource()).getValue();
-				customButton.setForeground(new Color(customColor[0], customColor[1], customColor[2]));
-			}
-		});
-		JButton smallSizeButton = new JButton("Small Brush");
-		brushSettings.add(smallSizeButton);
-		smallSizeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {size = 5;}
-		});
-		JButton mediumSizeButton = new JButton("Medium Brush");
-		brushSettings.add(mediumSizeButton);
-		mediumSizeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {size = 15;}
-		});
-		JButton largeSizeButton = new JButton("Large Brush");
-		brushSettings.add(largeSizeButton);
-		largeSizeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {size = 25;}
-		});
-		JButton hugeSizeButton = new JButton("Huge Brush");
-		brushSettings.add(hugeSizeButton);
-		hugeSizeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {size = 50;}
-		});
 		//end brush settings
 
 		//begin selection settings
@@ -455,15 +340,7 @@ public class MainFrame extends JFrame {
 	private class CanvasMouseListener extends MouseAdapter{
 
 		private void newDrawnObject() {
-			if(brush == 0) {
-				currentDrawnObject = new CirclesLineBrush();
-			}
-			else if(brush == 1) {
-				currentDrawnObject = new SmoothLineBrush();
-			}
-			else if(brush == 2) {
-				currentDrawnObject = new FillAreaBrush();
-			}
+			currentDrawnObject = brushSettings.createNewBrush();
 			layers.get(currentLayer()).shapelist.add(currentDrawnObject);
 		}
 
@@ -515,7 +392,7 @@ public class MainFrame extends JFrame {
 			//if(true)return;
 			if(mouseMode == MOUSE_DRAW) {
 				newDrawnObject();
-				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), size, getColor()));
+				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
 			}
 			else if(mouseMode == MOUSE_SELECT) {
 				selectObject(e.getX(), e.getY(), e);
@@ -538,7 +415,7 @@ public class MainFrame extends JFrame {
 					newDrawnObject();
 				}
 				//size = (int) (Math.sqrt(Math.pow((e.getX() - lastMouseX), 2) + Math.pow((e.getY() - lastMouseY), 2))/10) + 2;
-				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), size, getColor()));
+				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
 			}
 			else if(mouseMode == MOUSE_SELECT) {
 				if(selectionOrigion != null) {
@@ -565,10 +442,6 @@ public class MainFrame extends JFrame {
 			canvasPanel.updateUI();
 		}
 
-	}
-
-	private Color getColor() {
-		return new Color(color[0], color[1], color[2], color.length == 4 ? color[3] : alpha);
 	}
 
 	private int currentLayer() {

@@ -336,18 +336,22 @@ public class MainFrame extends JFrame {
 						Brush shape = layer.shapelist.get(j);
 
 						shape.draw(imageGraphics);
-
-						//if shape is selected draw red outline and box around it
-						if(currentLayer == i && selectedShapes.contains(j)) {
-							imageGraphics.setColor(Color.RED);
-							shape.drawOutline(imageGraphics);
-							Rectangle rect = shape.getBounds();
-							imageGraphics.drawRect(rect.x, rect.y, rect.width, rect.height);
-						}
 					}
 					
 					g.drawImage(image, 0, 0, null);
 				}
+				//draw red outlines around selected shapes, its down here so it gets drawn above all the drawings.
+				for(int i = 0; i < layers.get(currentLayer()).shapelist.size(); i++) {
+					if(selectedShapes.contains(i)) {
+						Brush shape = layers.get(currentLayer()).shapelist.get(i);
+						g.setColor(Color.RED);
+						shape.drawOutline((Graphics2D)g);
+						
+						Rectangle rect = shape.getBounds();
+						g.drawRect(rect.x, rect.y, rect.width, rect.height);
+					}
+				}
+
 				//draw the selection box, when you click and drag to select things in select mode
 				if(selectionRectOrigion != null) {
 					Rectangle selection = new Rectangle(lastMouseX, lastMouseY, 0, 0);

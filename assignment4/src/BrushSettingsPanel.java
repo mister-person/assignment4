@@ -19,13 +19,19 @@ public class BrushSettingsPanel extends JPanel {
 	private int[] color = new int[]{0, 0, 0};
 	private int alpha = 255;
 
+	//brush that draws circles at every point
 	public static final int BRUSH_CIRCLES = 0;
+	//brush that draws a smooth line between every point
 	public static final int BRUSH_SMOOTH_LINE = 1;
+	//brush that fills the area inside every point
 	public static final int BRUSH_FILL_AREA = 2;
+	//brush that draws a rectangle between the first and last point
+	public static final int BRUSH_RECTANGLE = 3;
 
 	public BrushSettingsPanel() {
 
-		JComboBox<String> brushes = new JComboBox<>(new String[]{"Circles", "Smooth Line", "Fill Area"});
+		//drop down menu to choose which brush to use
+		JComboBox<String> brushes = new JComboBox<>(new String[]{"Circles", "Smooth Line", "Fill Area", "Rectangle"});
 		add(brushes);
 		brushes.addActionListener(new ActionListener() {
 			@Override
@@ -34,6 +40,7 @@ public class BrushSettingsPanel extends JPanel {
 			}
 		});
 
+		//slider to choose transparency
 		add(new JLabel("Transparency:"));
 		JSlider alphaSlider = new JSlider(0, 255, 0);
 		add(alphaSlider);
@@ -44,36 +51,40 @@ public class BrushSettingsPanel extends JPanel {
 			}
 		});
 
+		//buttons to change current color
 		JButton redButton = new JButton("Red");
 		add(redButton);
 		redButton.addActionListener(new ColorListener(new int[]{255, 0, 0}));
-		redButton.setForeground(new Color(255, 0, 0));
+		redButton.setForeground(Color.RED);
 
 		JButton greenButton = new JButton("Green");
 		add(greenButton);
 		greenButton.addActionListener(new ColorListener(new int[]{0, 255, 0}));
-		greenButton.setForeground(new Color(0, 255, 0));
+		greenButton.setForeground(Color.GREEN);
 
 		JButton blueButton = new JButton("Blue");
 		add(blueButton);
 		blueButton.addActionListener(new ColorListener(new int[]{0, 0, 255}));
-		blueButton.setForeground(new Color(0, 0, 255));
+		blueButton.setForeground(Color.BLUE);
 
 		JButton blackButton = new JButton("Black");
 		add(blackButton);
 		blackButton.addActionListener(new ColorListener(new int[]{0, 0, 0}));
-		blackButton.setForeground(new Color(0, 0, 0));
+		blackButton.setForeground(Color.BLACK);
 
+		//4th number in color array overrides value of alpha variable controlled by slider
 		JButton whiteButton = new JButton("Erase");
 		add(whiteButton);
 		whiteButton.addActionListener(new ColorListener(new int[]{255, 255, 255, 0}));
 		whiteButton.setForeground(new Color(180, 180, 180));
 
+		//passes reference to customColor to the listener so the custom color changes when the customColor variable is changed
 		JButton customButton = new JButton("Custom");
 		add(customButton);
 		customButton.addActionListener(new ColorListener(customColor));
-		customButton.setForeground(new Color(0, 0, 0));
+		customButton.setForeground(Color.BLACK);
 
+		//custom color sliders change value of customColor variable and color of custom color button
 		add(new JLabel("Custom Red:"));
 		JSlider customRed = new JSlider(0, 255, 0);
 		add(customRed);
@@ -105,6 +116,7 @@ public class BrushSettingsPanel extends JPanel {
 			}
 		});
 		
+		//brush size buttons
 		JButton smallSizeButton = new JButton("Small Brush");
 		add(smallSizeButton);
 		smallSizeButton.addActionListener(new SizeListener(5));
@@ -123,6 +135,7 @@ public class BrushSettingsPanel extends JPanel {
 	}
 	
 	public Color getBrushColor() {
+		//makes a Color object out of the int array color, if array length is 4 then the 4th element is the alpha, otherwise variable alpha is the alpha
 		return new Color(color[0], color[1], color[2], color.length == 4 ? color[3] : alpha);
 	}
 	
@@ -143,6 +156,9 @@ public class BrushSettingsPanel extends JPanel {
 		}
 		else if(brushType == BRUSH_FILL_AREA) {
 			return new FillAreaBrush();
+		}
+		else if(brushType == BRUSH_RECTANGLE) {
+			return new BrushRectangle();
 		}
 		else {
 			return new CirclesLineBrush();

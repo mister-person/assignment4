@@ -1,5 +1,3 @@
-import java.awt.AlphaComposite;
-import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -18,7 +16,7 @@ public class FillAreaBrush implements Brush {
 	}
 
 	@Override
-	public boolean inObject(double x, double y) {
+	public boolean containsPoint(double x, double y) {
 		return getPolygon().contains(x, y);
 	}
 
@@ -37,21 +35,17 @@ public class FillAreaBrush implements Brush {
 	}
 
 	@Override
-	public void draw(Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
-		
+	public void draw(Graphics2D g) {
 		if(pointlist.size() > 0) {
-			g2.setColor(pointlist.get(0).getColor());
+			g.setColor(pointlist.get(0).getColor());
 		}
-		g2.fill(getPolygon());
+		g.fill(getPolygon());
 
 	}
 
 	@Override
-	public void drawOutline(Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
-
-		g2.draw(getPolygon());
+	public void drawOutline(Graphics2D g) {
+		g.draw(getPolygon());
 	}
 
 	@Override

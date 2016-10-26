@@ -17,7 +17,7 @@ public class CirclesLineBrush implements Brush {
 	}
 
 	@Override
-	public boolean inObject(double x, double y) {
+	public boolean containsPoint(double x, double y) {
 		for(DrawnPoint p:pointlist) {
 			if(Point2D.distance(x, y, p.x, p.y) < p.getSize()/2) {
 				return true;
@@ -44,19 +44,17 @@ public class CirclesLineBrush implements Brush {
 	}
 
 	@Override
-	public void draw(Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
+	public void draw(Graphics2D g) {
 		for(DrawnPoint p:pointlist) {
-			g2.setColor(p.getColor());
-			g2.fillOval((int)(p.x - p.getSize()/2), (int)(p.y - p.getSize()/2), p.getSize(), p.getSize());
+			g.setColor(p.getColor());
+			g.fillOval((int)(p.x - p.getSize()/2), (int)(p.y - p.getSize()/2), p.getSize(), p.getSize());
 		}
 	}
 
 	@Override
-	public void drawOutline(Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
+	public void drawOutline(Graphics2D g) {
 		for(DrawnPoint p:pointlist) {
-			g2.drawOval((int)(p.x - p.getSize()/2), (int)(p.y - p.getSize()/2), p.getSize(), p.getSize());
+			g.drawOval((int)(p.x - p.getSize()/2), (int)(p.y - p.getSize()/2), p.getSize(), p.getSize());
 		}
 	}
 

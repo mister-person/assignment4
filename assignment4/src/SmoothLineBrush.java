@@ -26,21 +26,16 @@ public class SmoothLineBrush implements Brush {
 	}
 
 	@Override
-	public void draw(Graphics g) {
-		//apparently you can do this
-		Graphics2D g2 = (Graphics2D)g;
-		
+	public void draw(Graphics2D g) {
 		if(pointlist.size() > 0) {
-			g2.setColor(pointlist.get(0).getColor());
+			g.setColor(pointlist.get(0).getColor());
 		}
-		g2.fill(getPolygon());
+		g.fill(getPolygon());
 	}
 
 	@Override
-	public void drawOutline(Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
-		
-		g2.draw(getPolygon());
+	public void drawOutline(Graphics2D g) {
+		g.draw(getPolygon());
 	}
 
 	@Override
@@ -57,7 +52,7 @@ public class SmoothLineBrush implements Brush {
 	}
 
 	@Override
-	public boolean inObject(double x, double y) {
+	public boolean containsPoint(double x, double y) {
 		return getPolygon().contains(x, y);
 	}
 	
@@ -67,26 +62,31 @@ public class SmoothLineBrush implements Brush {
 	}
 
 	private Shape getPolygon() {
+		//don't recompute polygon if it hasn't been changed.
 		if(polygonUpdated) {
 			return polygon;
 		}
+		//get rid of points that are right next to each other because it messes up the algorithm
 		ArrayList<DrawnPoint> cpointlist = cullAdjacentPoints();
 		
+		//WIND_NON_ZERO so there aren't tons of holes in the polygon
 		Path2D.Double path = new Path2D.Double(Path2D.WIND_NON_ZERO, cpointlist.size()*4);
 
+		//there has to be at least 2 points to start drawing a line through them
 		if(cpointlist.size() >= 2) {
 			Point[] points = new Point[cpointlist.size()*4 - 4];
 			DrawnPoint point, nextPoint; 
-			DrawnPoint prevPoint = null;
 
+			//this loop goes through each pair of adjacent points and computes the corners rectangle of width point.getSize to connect them,
+			//and adds those points to an array, with one side of the rectangle at the beginning of the array and the other at the end so the
+			//array makes the vertices of a polygon that connects every point smoothly.
 			for(int i = 0; i < cpointlist.size(); i++) {
 				point = cpointlist.get(i);
 
 				if(i + 1 < cpointlist.size()) {
 					nextPoint = cpointlist.get(i + 1);
 
-					//if(point.getSize() != 1 || nextPoint.getSize() != 1) {
-
+					//get direction from point to nextPoint
 					Point normVector = getNormVector(point, nextPoint);
 
 					//rotate normalized vector by 90 degrees, multiply it by size, and add it to polygon
@@ -99,26 +99,24 @@ public class SmoothLineBrush implements Brush {
 					points[points.length - i*2 - 2] = new Point(-(normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), (normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
 
 					points[i*2 + 1] = new Point((normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), -(normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
-					
-					prevPoint = point;
 				}
 			}
 
-			double size = cpointlist.get(cpointlist.size() - 1).getSize() * .6;
-			
+			//now add all the points from the array to a path object
 			path.moveTo(points[0].x, points[0].y);
 			
 			int i;
 			//first half of points
 			for(i = 1; i < points.length/2; i++) {
 				if(i%2 == 0) {
-					//path.lineTo(curvePoints[i/2].x + pointlist.get(i/2).x + 20, curvePoints[i/2].y + pointlist.get(i/2).y + 20);
+					//the rectangles have gaps in them, so this fills the gaps with curves instead of lines
 					approxCircle(path, cpointlist.get(i/2), cpointlist.get(i/2-1), cpointlist.get(i/2+1), points[i - 1], points[i]);
 				}
 				path.lineTo(points[i].x, points[i].y);
 			}
 			
 			//curve around at the end, approximate a circle with Bezier curve
+			double size = cpointlist.get(cpointlist.size() - 1).getSize() * .6;
 			Point normVector = getNormVector(cpointlist.get(cpointlist.size() - 2), cpointlist.get(cpointlist.size() - 1));
 			path.curveTo(normVector.x*size + points[i - 1].x, normVector.y*size + points[i - 1].y, normVector.x*size + points[i].x, normVector.y*size + points[i].y, points[i].x, points[i].y);
 
@@ -130,13 +128,15 @@ public class SmoothLineBrush implements Brush {
 				}
 				path.lineTo(points[i].x, points[i].y);
 			}
-			
+
 			//curve around at the beginning
+			size = cpointlist.get(0).getSize() * .6;
 			normVector = getNormVector(cpointlist.get(1), cpointlist.get(0));
 			path.curveTo(normVector.x*size + points[i - 1].x, normVector.y*size + points[i - 1].y, normVector.x*size + points[0].x, normVector.y*size + points[0].y, points[0].x, points[0].y);
 			
 		}
 		else if(pointlist.size() > 0){
+			//if there's only one point just make a circle
 			DrawnPoint point = pointlist.get(0);
 			return new Ellipse2D.Double(point.x-point.getSize()/2, point.y - point.getSize()/2, point.getSize(), point.getSize());
 		}
@@ -146,24 +146,21 @@ public class SmoothLineBrush implements Brush {
 		return path;
 	}
 	
-	//http://stackoverflow.com/questions/1734745/how-to-create-circle-with-bézier-curves
 	private void approxCircle(Path2D path, Point center, Point lastPoint, Point nextPoint, Point curveFrom, Point curveTo) {
 		Point curvePoint = getNormVector(center, nextPoint).add(getNormVector(center, lastPoint));
 		if(!(curvePoint.x == 0 && curvePoint.y == 0)) {
 			Point fromDelta = curveFrom.add(center.flip());
-			//Point toDelta = curveTo.add(center.flip());
 			
-			//check if we're on the outside of a curve
+			//check if we're on the outside of a curve, where a gap would be
 			if(angleBetweenVectors(fromDelta, curvePoint) >= Math.PI/2 - .01) {
-				//curvePoints[i] = getNormVector(new Point(0, 0), curvePoint);
 				doApproxCircle(path, center, curveFrom, curveTo);
-				//path.lineTo(bezier1.x, bezier1.y);
-				//path.lineTo(bezier2.x, bezier2.y);
 			}
 		}
 	}
 	
 	private void doApproxCircle(Path2D path, Point center, Point curveFrom, Point curveTo) {
+		//complicated vector stuff to approximate a circle with bezier curves
+		//http://stackoverflow.com/questions/1734745/how-to-create-circle-with-bézier-curves
 		Point fromDelta = curveFrom.add(center.flip());
 		Point toDelta = curveTo.add(center.flip());
 		
@@ -192,7 +189,6 @@ public class SmoothLineBrush implements Brush {
 			}
 		}
 		newPointlist.add(pointlist.get(pointlist.size() - 1));
-		//newPointlist.add(pointlist.get(pointlist.size() - 1));
 		return newPointlist;
 	}
 	

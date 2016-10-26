@@ -46,16 +46,16 @@ public class MainFrame extends JFrame {
 	private JCheckBox visibleBox;
 	private JTextField nameField; 
 
-	private ArrayList<Integer> selectedObjects = new ArrayList<>();
+	private ArrayList<Integer> selectedShapes = new ArrayList<>();
 	private JLabel selectSomethingLabel;
 	private JPanel selectionSettings;
-	private Point selectionOrigion;
+	private Point selectionRectOrigion;
 	private int lastMouseX;
 	private int lastMouseY;
 
 	//brush settings
 	private BrushSettingsPanel brushSettings;
-	private Brush currentDrawnObject;
+	private Brush currentDrawnShape;
 
 	private int mouseMode = 0;
 	public static final int MOUSE_DRAW = 0;
@@ -84,9 +84,11 @@ public class MainFrame extends JFrame {
 					repaint();
 				}
 				//unselect everything if you move to a new layer
-				selectedObjects.clear();
+				selectedShapes.clear();
 			}
 		});
+		
+		rightPanel.add(new JLabel("Layers"));
 
 		JScrollPane layerPane = new JScrollPane(layerJList);
 		rightPanel.add(layerPane);
@@ -211,13 +213,13 @@ public class MainFrame extends JFrame {
 					brushSettings.setVisible(false);
 					selectionSettings.setVisible(true);
 				}
-				selectedObjects.clear();
+				selectedShapes.clear();
 				repaint();
 			}
 		});
 
 		//brush settings
-		//moved into new class because this one was getting long
+		//moved into new class because it was getting long
 		//is only visible in draw mode
 		brushSettings = new BrushSettingsPanel();
 		leftPanel.add(brushSettings);
@@ -236,38 +238,42 @@ public class MainFrame extends JFrame {
 		selectSomethingLabel.setVisible(false);
 		
 		JButton deleteButton = new JButton("Delete");
-		deleteButton.setToolTipText("Delete selected objects");
+		deleteButton.setToolTipText("Delete selected shapes");
 		selectionSettings.add(deleteButton);
 		deleteButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(!selectedObjects.isEmpty()) {
-					layers.get(currentLayer()).removeAll(selectedObjects);
-					selectedObjects.clear();
+				if(!selectedShapes.isEmpty()) {
+					//delete all selected shapes from the layer and the selected shapes list.
+					layers.get(currentLayer()).removeAll(selectedShapes);
+					selectedShapes.clear();
 					repaint();
 				}
 				else {
+					//show notice if you haven't selected anything
 					selectSomethingLabel.setVisible(true);
 				}
 			}
 		});
 		
-		//move selected objects to layer above the one they're in
+		//move selected shapes to layer above the one they're in
 		JButton upLayerButton = new JButton("Move Up Layer");
-		upLayerButton.setToolTipText("Move selected objects to layer above the one they're in");
+		upLayerButton.setToolTipText("Move selected shapes to layer above the one they're in");
 		selectionSettings.add(upLayerButton);
 		upLayerButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(!selectedObjects.isEmpty()) {
+				if(!selectedShapes.isEmpty()) {
 					if(currentLayer() >= 1) {
-						//sort objects so they get moved in the correct order
-						Collections.sort(selectedObjects);
-						for(int i = 0; i < selectedObjects.size(); i++) {
-							int index = selectedObjects.get(i);
+						//sort selected shapes so they get moved in the correct order
+						Collections.sort(selectedShapes);
+						//then move shapes one by one to the layer above
+						for(int i = 0; i < selectedShapes.size(); i++) {
+							int index = selectedShapes.get(i);
 							layers.get(currentLayer() - 1).shapelist.add(layers.get(currentLayer()).shapelist.get(index));
 						}
-						layers.get(currentLayer()).removeAll(selectedObjects);
+						//and delete them from the current layer.
+						layers.get(currentLayer()).removeAll(selectedShapes);
 						setCurrentLayer(currentLayer() - 1);
 					}
 					repaint();
@@ -279,19 +285,20 @@ public class MainFrame extends JFrame {
 		});
 		
 		JButton downLayerButton = new JButton("Move Down Layer");
-		downLayerButton.setToolTipText("Move selected objects to layer below the one they're in");
+		downLayerButton.setToolTipText("Move selected shapes to layer below the one they're in");
 		selectionSettings.add(downLayerButton);
 		downLayerButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(!selectedObjects.isEmpty()) {
+				if(!selectedShapes.isEmpty()) {
 					if(currentLayer() < layers.size() - 1) {
-						Collections.sort(selectedObjects);
-						for(int i = 0; i < selectedObjects.size(); i++) {
-							int index = selectedObjects.get(i);
+						//same as above except moving shapes down.
+						Collections.sort(selectedShapes);
+						for(int i = 0; i < selectedShapes.size(); i++) {
+							int index = selectedShapes.get(i);
 							layers.get(currentLayer() + 1).shapelist.add(layers.get(currentLayer()).shapelist.get(index));
 						}
-						layers.get(currentLayer()).removeAll(selectedObjects);
+						layers.get(currentLayer()).removeAll(selectedShapes);
 						setCurrentLayer(currentLayer() + 1);
 					}
 					repaint();
@@ -310,35 +317,42 @@ public class MainFrame extends JFrame {
 			@Override
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
+				//draw each layer
 				for(int i = layers.size() - 1; i >= 0; i--) {
 					Layer layer = layers.get(i);
+					//don't draw layer if it's invisible
 					if(!layer.visible) {
-						continue;//fewer indentations
+						continue;
 					}
 
+					//make a new bufferedimage to draw this layer on
 					BufferedImage image = new BufferedImage(canvasPanel.getWidth(), canvasPanel.getHeight(), BufferedImage.TYPE_INT_ARGB);
 					Graphics2D imageGraphics = image.createGraphics();
-						imageGraphics.setComposite(AlphaComposite.Src);
-					
+					//make it so transparent shapes are not transparent to other shapes on the same layer
+					imageGraphics.setComposite(AlphaComposite.Src);
+
+					//draw each shape in this layer onto image
 					for(int j = 0; j < layer.shapelist.size(); j++) {
 						Brush shape = layer.shapelist.get(j);
 
 						shape.draw(imageGraphics);
 
-						if(currentLayer == i && selectedObjects.contains(j)) {
+						//if shape is selected draw red outline and box around it
+						if(currentLayer == i && selectedShapes.contains(j)) {
 							imageGraphics.setColor(Color.RED);
 							shape.drawOutline(imageGraphics);
 							Rectangle rect = shape.getBounds();
 							imageGraphics.drawRect(rect.x, rect.y, rect.width, rect.height);
 						}
 					}
-
+					
 					g.drawImage(image, 0, 0, null);
 				}
-				if(selectionOrigion != null) {
+				//draw the selection box, when you click and drag to select things in select mode
+				if(selectionRectOrigion != null) {
 					Rectangle selection = new Rectangle(lastMouseX, lastMouseY, 0, 0);
-					selection.add(selectionOrigion);
-					g.setColor(new Color(255, 0, 0));
+					selection.add(selectionRectOrigion);
+					g.setColor(Color.RED);
 					g.drawRect(selection.x, selection.y, selection.width, selection.height);
 				}
 			}
@@ -348,7 +362,8 @@ public class MainFrame extends JFrame {
 		canvasPanel.addMouseListener(listener);
 		canvasPanel.addMouseMotionListener(listener);
 		add(canvasPanel, BorderLayout.CENTER);
-		canvasPanel.setBackground(new Color(255, 255, 255));
+		
+		canvasPanel.setBackground(Color.WHITE);
 		canvasPanel.setVisible(true);
 		canvasPanel.setPreferredSize(new Dimension(500, 500));
 		repaint();
@@ -362,40 +377,46 @@ public class MainFrame extends JFrame {
 
 	private class CanvasMouseListener extends MouseAdapter{
 
-		private void newDrawnObject() {
-			currentDrawnObject = brushSettings.createNewBrush();
-			layers.get(currentLayer()).shapelist.add(currentDrawnObject);
+		private void newDrawnShape() {
+			//create new brush based on the state of the brush drop down menu, add it to the current layer, and make it the currentDrawnShape.
+			currentDrawnShape = brushSettings.createNewBrush();
+			layers.get(currentLayer()).shapelist.add(currentDrawnShape);
 		}
 
-		private void selectObject(double x, double y, MouseEvent e) {
+		//note: can only select shapes in current layer
+		private void selectShape(double x, double y, MouseEvent e) {
+			//loop through all shapes in current layer and see if (x, y) is inside them, if it is add it to the selected shapes if it's not already there.
+			//if command key is down (shouldMultiSelect()) removes it from the list if it's already there
+			//if command key is not down, remove all other shapes from selected list. 
 			for(int i = layers.get(currentLayer()).shapelist.size() - 1; i >= 0; i--) {
-				if(layers.get(currentLayer()).shapelist.get(i).inObject(x, y)) {
-					if(!selectedObjects.contains(i)) {
+				if(layers.get(currentLayer()).shapelist.get(i).containsPoint(x, y)) {
+					if(!selectedShapes.contains(i)) {
 						if(!shouldMultiSelect(e)) {
-							selectedObjects.clear();
+							selectedShapes.clear();
 						}
-						selectedObjects.add(i);
+						selectedShapes.add(i);
 						selectSomethingLabel.setVisible(false);
 					}
 					else if(shouldMultiSelect(e)) {
-						selectedObjects.remove(Integer.valueOf(i));
+						selectedShapes.remove(Integer.valueOf(i));
 					}
 					return;
 				}
 			}
 			if(!shouldMultiSelect(e)) {
-				selectedObjects.clear();
+				selectedShapes.clear();
 			}
 		}
 
-		private void selectObjects(Rectangle selection, MouseEvent e) {
+		private void selectShape(Rectangle selection, MouseEvent e) {
 			if(!shouldMultiSelect(e)) {
-				selectedObjects.clear();
+				selectedShapes.clear();
 			}
+			//add every shape in current layer who's bounding box intersects with selection to the selected shape list.
 			for(int i = layers.get(currentLayer()).shapelist.size() - 1; i >= 0; i--) {
 				if(layers.get(currentLayer()).shapelist.get(i).getBounds().intersects(selection)) {
-					if(!selectedObjects.contains(i)) {
-						selectedObjects.add(i);
+					if(!selectedShapes.contains(i)) {
+						selectedShapes.add(i);
 						selectSomethingLabel.setVisible(false);
 					}
 				}
@@ -403,8 +424,9 @@ public class MainFrame extends JFrame {
 		}
 		
 		private boolean isMouseInSelection(MouseEvent e) {
-			for(int i:selectedObjects) {
-				if(layers.get(currentLayer()).shapelist.get(i).inObject(lastMouseX, lastMouseY)) {
+			//test if the mouse is hovering over any currently selected shape
+			for(int i:selectedShapes) {
+				if(layers.get(currentLayer()).shapelist.get(i).containsPoint(lastMouseX, lastMouseY)) {
 					return true;
 				}
 			}
@@ -413,58 +435,65 @@ public class MainFrame extends JFrame {
 
 		@Override
 		public void mousePressed(MouseEvent e) {
-			//mouseDragged(e);
-			//if(true)return;
+			//if in draw mode create new shape and add the mouse's position to it
 			if(mouseMode == MOUSE_DRAW) {
-				newDrawnObject();
-				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
+				newDrawnShape();
+				currentDrawnShape.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
 			}
 			else if(mouseMode == MOUSE_SELECT) {
-				selectObject(e.getX(), e.getY(), e);
-				if(selectedObjects.isEmpty() || shouldMultiSelect(e)) {
-					selectionOrigion = new Point(e.getX(), e.getY());
+				//select shape if it's moused over
+				selectShape(e.getX(), e.getY(), e);
+				
+				//only start selection rectangle if nothing was selected by selectShape or if command key is down,
+				//otherwise we want to drag the selected shapes not start selection
+				if(selectedShapes.isEmpty() || shouldMultiSelect(e)) {
+					selectionRectOrigion = new Point(e.getX(), e.getY());
 				}
 				else {
-					selectionOrigion = null;
+					selectionRectOrigion = null;
 				}
 			}
-			canvasPanel.updateUI();
+			repaint();
 			lastMouseX = e.getX();
 			lastMouseY = e.getY();
 		}
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
-			if(mouseMode == MOUSE_DRAW) {
+			if(mouseMode == MOUSE_DRAW) {//draw mode
+				//if somehow we're dragging the mouse and there's no currently drawn shape, make one.
 				if(layers.get(currentLayer()).shapelist.isEmpty()) {
-					newDrawnObject();
+					newDrawnShape();
 				}
-				//size = (int) (Math.sqrt(Math.pow((e.getX() - lastMouseX), 2) + Math.pow((e.getY() - lastMouseY), 2))/10) + 2;
-				currentDrawnObject.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
+				//add a new point to the current shape
+				currentDrawnShape.addPoint(new DrawnPoint(e.getX(), e.getY(), brushSettings.getBrushSize(), brushSettings.getBrushColor()));
 			}
-			else if(mouseMode == MOUSE_SELECT) {
-				if(selectionOrigion != null) {
+			else if(mouseMode == MOUSE_SELECT) {//select mode
+				//if there is a selection rect, select every shape inside of it
+				if(selectionRectOrigion != null) {
 					Rectangle selection = new Rectangle(e.getX(), e.getY(), 0, 0);
-					selection.add(selectionOrigion);
-					selectObjects(selection, e);
+					selection.add(selectionRectOrigion);
+					selectShape(selection, e);
 				}
-				if(!selectedObjects.isEmpty() && selectionOrigion == null) {
+				//if there's not a selection rect and the mouse is over a selected shape, drag all the selected shapes with the mouse.
+				if(!selectedShapes.isEmpty() && selectionRectOrigion == null) {
 					if(isMouseInSelection(e)) {
-						for(int object:selectedObjects) {
-							layers.get(currentLayer()).shapelist.get(object).transform(AffineTransform.getTranslateInstance(e.getX() - lastMouseX, e.getY() - lastMouseY));
+						for(int shape:selectedShapes) {
+							layers.get(currentLayer()).shapelist.get(shape).transform(AffineTransform.getTranslateInstance(e.getX() - lastMouseX, e.getY() - lastMouseY));
 						}
 					}
 				}
 			}
-			canvasPanel.updateUI();
+			repaint();
 			lastMouseX = e.getX();
 			lastMouseY = e.getY();
 		}
 
 		@Override
 		public void mouseReleased(MouseEvent e) {
-			selectionOrigion = null;
-			canvasPanel.updateUI();
+			//get rid of selection rect
+			selectionRectOrigion = null;
+			repaint();
 		}
 
 	}
@@ -473,7 +502,9 @@ public class MainFrame extends JFrame {
 		return currentLayer;
 	}
 
+	//change layers
 	private void setCurrentLayer(int layer) {
+		//if layer is out of bounds, set it to in bounds
 		if(layer >= layers.size()) {
 			layer = layers.size() - 1;
 		}
@@ -482,10 +513,13 @@ public class MainFrame extends JFrame {
 		}
 		currentLayer = layer;
 		layerJList.setSelectedIndex(layer);
+		//set "is layer visible" checkbox to visible state of new layer
 		visibleBox.getModel().setSelected(layers.get(currentLayer()).visible);
+		//set layer name text field to name of new layer
 		nameField.setText(layers.get(currentLayer()).name);
+		//unselect every shape on old layer
+		selectedShapes.clear();
 		repaint();
-		selectedObjects.clear();
 	}
 
 	private class LayerListModel extends AbstractListModel<Layer> {
@@ -506,23 +540,27 @@ public class MainFrame extends JFrame {
 				Layer current = layers.get(currentLayer());
 				layers.set(currentLayer(), layers.get(currentLayer() - 1));
 				layers.set(currentLayer() - 1, current);
+				//notify jlist that contents changed
 				fireContentsChanged(this, currentLayer() - 1, currentLayer());
+				//move to above layer
 				setCurrentLayer(currentLayer() - 1);
 			}
 		}
 
 		public void moveElementDown() {
 			if(currentLayer() < layers.size() - 1) {
-				//swap current layer and one above it
+				//swap current layer and one below it
 				Layer current = layers.get(currentLayer());
 				layers.set(currentLayer(), layers.get(currentLayer() + 1));
 				layers.set(currentLayer() + 1, current);
 				fireContentsChanged(this, currentLayer(), currentLayer() + 1);
+				//move to below layer
 				setCurrentLayer(currentLayer() + 1);
 			}
 		}
 
 		public void addElement() {
+			//add new layer, tell the jlist about it, and move to that layer
 			layers.add(new Layer());
 			fireIntervalAdded(this, layers.size() - 1, layers.size() - 1);
 			setCurrentLayer(layers.size() - 1);
@@ -530,13 +568,14 @@ public class MainFrame extends JFrame {
 
 		public void removeElement() {
 			if(layers.size() > 1) {
+				//remove current layer and tell the jlist about it
 				layers.remove(currentLayer());
 				fireIntervalRemoved(this, currentLayer(), currentLayer());
-				setCurrentLayer(currentLayer() - 1);
 			}
 		}
 
 		public void clear() {
+			//remove every existing layer and add a new one then tell the jlist about it
 			int size = layers.size() - 1;
 			layers.clear();
 			addElement();
@@ -544,10 +583,9 @@ public class MainFrame extends JFrame {
 		}
 	}
 	
-	//copied from javax.swing.plaf.basic.BasicGraphicsUtils.isMenuShortcutKeyDown()
 	static boolean shouldMultiSelect(InputEvent event) {
-        return (event.getModifiers() &
-                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()) != 0;
+		//copied from javax.swing.plaf.basic.BasicGraphicsUtils.isMenuShortcutKeyDown()
+        return (event.getModifiers() & Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()) != 0;
     }
 
 	private class Layer {
@@ -560,7 +598,7 @@ public class MainFrame extends JFrame {
 		}
 		
 		public void removeAll(List<Integer> indices) {
-			//sort objects so the correct ones get removed.
+			//sort indices so the correct ones get removed then remove them all from the shape list
 			Collections.sort(indices, Collections.reverseOrder());
 			for(int i = 0; i < indices.size(); i++) {
 				int index = indices.get(i);
@@ -569,6 +607,7 @@ public class MainFrame extends JFrame {
 		}
 
 		public String toString() {
+			//this is what is displayed on the jlist
 			return name + (visible ? "" : "(invisible)");
 		}
 	}

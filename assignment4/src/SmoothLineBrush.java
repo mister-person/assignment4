@@ -1,5 +1,3 @@
-import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Shape;
@@ -13,8 +11,6 @@ public class SmoothLineBrush implements Brush {
 	private ArrayList<DrawnPoint> pointlist = new ArrayList<>();
 	private Path2D.Double polygon;
 	private boolean polygonUpdated = false;
-	private int size;
-	private int[] color;
 
 	public SmoothLineBrush() {
 	}
@@ -90,15 +86,15 @@ public class SmoothLineBrush implements Brush {
 					Point normVector = getNormVector(point, nextPoint);
 
 					//rotate normalized vector by 90 degrees, multiply it by size, and add it to polygon
-					points[i*2 + 0] = new Point((normVector.y*point.getSize()*.48) + point.intxPos(), -(normVector.x*point.getSize()*.48) + point.intyPos());
+					points[i*2 + 0] = new Point((normVector.y*point.getSize()*.48) + point.x, -(normVector.x*point.getSize()*.48) + point.y);
 
 					//same as above but going 90 degrees the other direction and on the other end of the polygon
-					points[points.length - i*2 - 1] = new Point(-(normVector.y*point.getSize()*.48) + point.intxPos(), (normVector.x*point.getSize()*.48) + point.intyPos());
+					points[points.length - i*2 - 1] = new Point(-(normVector.y*point.getSize()*.48) + point.x, (normVector.x*point.getSize()*.48) + point.y);
 
 					//now same thing for points at nextPoint
-					points[points.length - i*2 - 2] = new Point(-(normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), (normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
+					points[points.length - i*2 - 2] = new Point(-(normVector.y*nextPoint.getSize()*.48) + nextPoint.x, (normVector.x*nextPoint.getSize()*.48) + nextPoint.y);
 
-					points[i*2 + 1] = new Point((normVector.y*nextPoint.getSize()*.48) + nextPoint.intxPos(), -(normVector.x*nextPoint.getSize()*.48) + nextPoint.intyPos());
+					points[i*2 + 1] = new Point((normVector.y*nextPoint.getSize()*.48) + nextPoint.x, -(normVector.x*nextPoint.getSize()*.48) + nextPoint.y);
 				}
 			}
 
@@ -151,7 +147,7 @@ public class SmoothLineBrush implements Brush {
 		if(!(curvePoint.x == 0 && curvePoint.y == 0)) {
 			Point fromDelta = curveFrom.add(center.flip());
 			
-			//check if we're on the outside of a curve, where a gap would be
+			//check if we're on the outside of a curve, where a gap would be, only draw curve if there would be a gap
 			if(angleBetweenVectors(fromDelta, curvePoint) >= Math.PI/2 - .01) {
 				doApproxCircle(path, center, curveFrom, curveTo);
 			}

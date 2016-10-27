@@ -610,6 +610,7 @@ public class MainFrame extends JFrame {
 			}
 		}
 
+		@Override
 		public String toString() {
 			//this is what is displayed on the jlist
 			return name + (visible ? "" : "(invisible)");

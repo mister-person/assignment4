@@ -40,7 +40,7 @@ public class BrushSettingsPanel extends JPanel {
 			}
 		});
 
-		//slider to choose transparency
+		//slider to choose transparency note: transparency works between layers not within one layer
 		add(new JLabel("Transparency:"));
 		JSlider alphaSlider = new JSlider(0, 255, 0);
 		add(alphaSlider);
